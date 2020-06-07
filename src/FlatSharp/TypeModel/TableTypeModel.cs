@@ -30,6 +30,11 @@
     public class TableTypeModel : RuntimeTypeModel
     {
         /// <summary>
+        /// File identifier size, in bytes.
+        /// </summary>
+        internal const int FileIdentifierSize = 4;
+
+        /// <summary>
         /// Maps vtable index -> type model.
         /// </summary>
         private readonly Dictionary<int, TableMemberModel> memberTypes = new Dictionary<int, TableMemberModel>();
@@ -99,6 +104,23 @@
             if (tableAttribute == null)
             {
                 throw new InvalidFlatBufferDefinitionException($"Can't create table type model from type {this.ClrType.Name} because it does not have a [FlatBufferTable] attribute.");
+            }
+
+            if (!string.IsNullOrEmpty(tableAttribute.FileIdentifier))
+            {
+                if (tableAttribute.FileIdentifier.Length != FileIdentifierSize)
+                {
+                    throw new InvalidFlatBufferDefinitionException($"File identifier '{tableAttribute.FileIdentifier}' is invalid. FileIdentifiers must be exactly {FileIdentifierSize} ASCII characters.");
+                }
+
+                for (int i = 0; i < tableAttribute.FileIdentifier.Length; ++i)
+                {
+                    char c = tableAttribute.FileIdentifier[i];
+                    if (c >= 128)
+                    {
+                        throw new InvalidFlatBufferDefinitionException($"File identifier '{tableAttribute.FileIdentifier}' contains non-ASCII characters. Character '{c}' is invalid.");
+                    }
+                }
             }
 
             EnsureClassCanBeInheritedByOutsideAssembly(this.ClrType, out var ctor);

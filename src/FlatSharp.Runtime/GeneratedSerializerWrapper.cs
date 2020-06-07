@@ -26,8 +26,11 @@ namespace FlatSharp
     /// </summary>
     internal class GeneratedSerializerWrapper<T> : ISerializer<T> where T : class
     {
+        private const int FileIdentifierSize = 4;
+
         private readonly IGeneratedSerializer<T> innerSerializer;
         private readonly Lazy<string> lazyCSharp;
+        private readonly string fileIdentifier;
 
         public GeneratedSerializerWrapper(
             IGeneratedSerializer<T> innerSerializer,
@@ -39,6 +42,9 @@ namespace FlatSharp
             this.Assembly = generatedAssembly;
             this.AssemblyBytes =generatedAssemblyBytes;
             this.innerSerializer = innerSerializer;
+
+            var tableAttribute = typeof(T).GetCustomAttribute<Attributes.FlatBufferTableAttribute>();
+            this.fileIdentifier = tableAttribute?.FileIdentifier;
         }
 
         public string CSharp => this.lazyCSharp.Value;
@@ -55,7 +61,14 @@ namespace FlatSharp
             }
 
             // 4 + padding(4) + inner serializer size. We add the extra to account for the very first uoffset.
-            return sizeof(uint) + SerializationHelpers.GetMaxPadding(sizeof(uint)) + this.innerSerializer.GetMaxSize(item);
+            int maxSize = sizeof(uint) + SerializationHelpers.GetMaxPadding(sizeof(uint)) + this.innerSerializer.GetMaxSize(item);
+
+            if (!string.IsNullOrEmpty(this.fileIdentifier))
+            {
+                maxSize += FileIdentifierSize;
+            }
+
+            return maxSize;
         }
 
         public T Parse(InputBuffer buffer)
@@ -88,6 +101,16 @@ namespace FlatSharp
 
             serializationContext.Reset(destination.Length);
             serializationContext.Offset = 4; // first 4 bytes are reserved for uoffset to the first table.
+
+            string fileId = this.fileIdentifier;
+            if (!string.IsNullOrEmpty(fileId))
+            {
+                destination[4] = (byte)fileId[0];
+                destination[5] = (byte)fileId[1];
+                destination[6] = (byte)fileId[2];
+                destination[7] = (byte)fileId[3];
+                serializationContext.Offset = 8;
+            }
 
             try
             {
