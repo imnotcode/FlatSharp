@@ -25,13 +25,6 @@ namespace BenchmarkCore
     using FlatSharp.Attributes;
     using FlatSharp.Unsafe;
 
-    [FlatBufferTable]
-    public class Test1<T>
-    {
-        [FlatBufferItem(0)]
-        public virtual T Item { get; set; }
-    }
-
     public class Program
     {
         public static void Main(string[] args)
@@ -54,8 +47,12 @@ namespace BenchmarkCore
             UnsortedVector<string> unsortedString = new UnsortedVector<string> { Item = stringVector.Item };
             UnsortedVector<int> unsortedInt = new UnsortedVector<int> { Item = intVector.Item };
 
+            FooBarContainer fb = CreateFooBarContainer(30);
+            var serializer = FooBarContainer.Serializer;
+            var sw = new SpanWriter();
+
             byte[] buffer = new byte[10 * 1024 * 1024];
-            var items = new (string, Action)[]
+            var items = new List<(string, Action)>
             {
                 //("ToArray", () => intVector.Item.Select(x => x.Item).ToArray()),
                 //("ArrayStringSort", () => Array.Sort(stringVector.Item.Select(x => x.Item).ToArray())),
@@ -66,7 +63,51 @@ namespace BenchmarkCore
                 ("UnsortedInt", () => inPlaceSorter.Serialize(unsortedInt, buffer)),
             };
 
-            RunBenchmarkSet(items);
+            items.AddRange(GetBenchmarkSet("FooBarContainerDynamic", inPlaceSorter.Compile<FooBarContainer>(), fb));
+            items.AddRange(GetBenchmarkSet("FooBarContainerStatic", FooBarContainer.Serializer, fb));
+
+            RunBenchmarkSet(items.ToArray());
+        }
+
+        private static FooBarContainer CreateFooBarContainer(int vectorLength)
+        {
+            FooBar[] fooBars = new FooBar[vectorLength];
+            for (int i = 0; i < fooBars.Length; i++)
+            {
+                var foo = new Foo
+                {
+                    id = 0xABADCAFEABADCAFE + (ulong)i,
+                    count = (short)(10000 + i),
+                    prefix = (sbyte)('@' + i),
+                    length = (uint)(1000000 + i)
+                };
+
+                var bar = new Bar
+                {
+                    parent = foo,
+                    ratio = 3.14159f + i,
+                    size = (ushort)(10000 + i),
+                    time = 123456 + i
+                };
+
+                var fooBar = new FooBar
+                {
+                    name = Guid.NewGuid().ToString(),
+                    postfix = (byte)('!' + i),
+                    rating = 3.1415432432445543543 + i,
+                    sibling = bar,
+                };
+
+                fooBars[i] = fooBar;
+            }
+
+            return new FooBarContainer
+            {
+                fruit = benchfb.Enum.Apples,
+                initialized = true,
+                location = "http://google.com/flatbuffers/",
+                list = fooBars,
+            };
         }
 
         private static void RunBenchmarkSet((string, Action)[] items)

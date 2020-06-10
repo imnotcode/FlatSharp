@@ -30,10 +30,18 @@ namespace FlatSharpTests
     [TestClass]
     public class FileIdentifierTests
     {
-        private static byte[] EmptyTable =
+        private static byte[] EmptyTableWithId =
         {
             8, 0, 0, 0,           // uoffset to the start of the table.
             97, 98, 99, 100,      // abcd file id
+            252, 255, 255, 255,   // soffset_t to the vtable
+            4, 0,                 // vtable size
+            4, 0,                 // table length
+        };
+
+        private static byte[] EmptyTableWithoutId =
+        {
+            4, 0, 0, 0,           // uoffset to the start of the table.
             252, 255, 255, 255,   // soffset_t to the vtable
             4, 0,                 // vtable size
             4, 0,                 // table length
@@ -46,11 +54,46 @@ namespace FlatSharpTests
             int bytesWritten = FlatBufferSerializer.Default.Serialize<FileIdentifierTable>(new FileIdentifierTable(), bytes);
 
             Assert.AreEqual(16, bytesWritten);
-            Assert.IsTrue(bytes.AsSpan().Slice(0, 16).SequenceEqual(EmptyTable));
+            Assert.IsTrue(bytes.AsSpan().Slice(0, 16).SequenceEqual(EmptyTableWithId));
+        }
+
+        [TestMethod]
+        public void InputBuffer_FileIdentifiers()
+        {
+            InputBuffer buffer = new ArrayInputBuffer(EmptyTableWithId);
+
+            Assert.AreEqual(buffer.FileIdentifier, "abcd");
+            Assert.IsTrue(buffer.FileIdentifierMatches<FileIdentifierTable>() == true);
+            Assert.IsTrue(buffer.FileIdentifierMatches<FileIdentifierTable2>() == false);
+            Assert.IsTrue(buffer.FileIdentifierMatches<NoFileIdentifierTable>() == null);
+        }
+
+        [TestMethod]
+        public void Write_NoFileIdentifier()
+        {
+            byte[] bytes = new byte[1024];
+            int bytesWritten = FlatBufferSerializer.Default.Serialize<NoFileIdentifierTable>(new NoFileIdentifierTable(), bytes);
+
+            Assert.AreEqual(12, bytesWritten);
+            Assert.IsTrue(bytes.AsSpan().Slice(0, 12).SequenceEqual(EmptyTableWithoutId));
         }
 
         [FlatBufferTable(FileIdentifier = "abcd")]
         public class FileIdentifierTable
+        {
+            [FlatBufferItem(0)]
+            public virtual int Int { get; set; }
+        }
+
+        [FlatBufferTable(FileIdentifier = "efgh")]
+        public class FileIdentifierTable2
+        {
+            [FlatBufferItem(0)]
+            public virtual int Int { get; set; }
+        }
+
+        [FlatBufferTable]
+        public class NoFileIdentifierTable
         {
             [FlatBufferItem(0)]
             public virtual int Int { get; set; }

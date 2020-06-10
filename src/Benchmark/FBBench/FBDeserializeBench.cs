@@ -36,6 +36,21 @@ namespace Benchmark.FBBench
         )]
         public override FlatBufferDeserializationOption DeserializeOption { get; set; }
 
+        [Params(typeof(MemoryInputBuffer), typeof(ArrayInputBuffer))]
+        public Type InputBuferType { get; set; }
+
+        protected override InputBuffer GetInputBuffer(byte[] data)
+        {
+            if (this.InputBuferType == typeof(MemoryInputBuffer))
+            {
+                return new MemoryInputBuffer(data.AsMemory());
+            }
+            else
+            {
+                return new ArrayInputBuffer(data);
+            }
+        }
+
         [Benchmark]
         public override void FlatSharp_ParseAndTraverse() => base.FlatSharp_ParseAndTraverse();
 

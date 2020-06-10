@@ -26,6 +26,7 @@ namespace Benchmark.FBBench
     using FlatSharp.Attributes;
     using ProtoBuf;
 
+    [ShortRunJob(BenchmarkDotNet.Jobs.RuntimeMoniker.NetCoreApp50)]
     [ShortRunJob(BenchmarkDotNet.Jobs.RuntimeMoniker.NetCoreApp31)]
     [ShortRunJob(BenchmarkDotNet.Jobs.RuntimeMoniker.NetCoreApp21)]
     [ShortRunJob(BenchmarkDotNet.Jobs.RuntimeMoniker.Net47)]
@@ -118,7 +119,7 @@ namespace Benchmark.FBBench
                 this.fs_serializer = new FlatBufferSerializer(options);
                 int offset = this.fs_serializer.Serialize(this.defaultContainer, this.fs_writeMemory);
                 this.fs_readMemory = this.fs_writeMemory.AsSpan(0, offset).ToArray();
-                this.inputBuffer = new ArrayInputBuffer(this.fs_readMemory);
+                this.inputBuffer = this.GetInputBuffer(this.fs_readMemory);
                 this.FlatSharp_ParseAndTraverse();
             }
 

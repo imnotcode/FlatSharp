@@ -17,10 +17,14 @@
 namespace FlatSharp
 {
     using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Reflection;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Text;
+    using FlatSharp.Attributes;
 
     /// <summary>
     /// A buffer for reading from memory.
@@ -28,10 +32,64 @@ namespace FlatSharp
     public abstract class InputBuffer
     {
         internal static readonly Encoding Encoding = new UTF8Encoding(false);
+        internal static readonly ConcurrentDictionary<Type, string> FileIdentifierCache = new ConcurrentDictionary<Type, string>();
+
         internal const byte True = 1;
         internal const byte False = 0;
 
         #region Defined Methods
+
+        /// <summary>
+        /// Gets the file identifier from the buffer, if available. 
+        /// Returns null if the buffer is too short to have an identifier.
+        /// </summary>
+        public string FileIdentifier
+        {
+            get
+            {
+                if (this.Length < 8)
+                {
+                    return null;
+                }
+
+                return this.ReadStringProtected(sizeof(int), 4, Encoding.ASCII);
+            }
+        }
+
+        /// <summary>
+        /// Tests to see if this buffer's file identifier matches that of the given type T.
+        /// </summary>
+        /// <returns>True if match or doesn't exist on both, false if no match, null if indeterminate.</returns>
+        public bool? FileIdentifierMatches<T>() where T : class
+        {
+            if (!FileIdentifierCache.TryGetValue(typeof(T), out string typeFileIdentifier))
+            {
+                var attribute = typeof(T).GetCustomAttribute<FlatBufferTableAttribute>();
+                if (attribute == null)
+                {
+                    throw new InvalidOperationException($"Type '{typeof(T).Name}' does not have a FlatBufferTable attribute.");
+                }
+
+                typeFileIdentifier = attribute.FileIdentifier;
+                FileIdentifierCache[typeof(T)] = typeFileIdentifier;
+            }
+
+            string fileIdentifier = this.FileIdentifier;
+
+            bool hasFileIdentifier = fileIdentifier != null;
+            bool hasTypeFileIdentifier = typeFileIdentifier != null;
+
+            if (hasFileIdentifier == hasTypeFileIdentifier)
+            {
+                return fileIdentifier == typeFileIdentifier;
+            }
+            else
+            {
+                // If the type has an identifier, but the buffer doesn't, then we can't be sure.
+                // Likewise, if the buffer has an ID but the type doesn't, then we also can't be sure.
+                return null;
+            }
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadBool(int offset)
