@@ -14,23 +14,19 @@
  * limitations under the License.
  */
 
-namespace BenchmarkCore
+namespace FlatSharp
 {
-    using Benchmark.FBBench;
-
-    public class Program
+    /// <summary>
+    /// Defines an interface used to detect repeated strings in an input buffer and
+    /// return previously-computed instances. It is highly recommended
+    /// to make implementations of ISharedStringReader threadsafe.
+    /// </summary>
+    public interface ISharedStringReader
     {
-        public static void Main(string[] args)
-        {
-            FBSharedStringBench bench = new FBSharedStringBench();
-            bench.CacheSize = 800;
-            bench.VectorLength = 1000;
-            bench.GlobalSetup();
-
-            while (true)
-            {
-                bench.Parse_RepeatedStringVector_WithSharedStrings();
-            }
-        }
+        /// <summary>
+        /// Reads a string from the given input buffer from the given offset.
+        /// May perform deduplication of shared strings and return a previously-computed value.
+        /// </summary>
+        SharedString ReadSharedString(InputBuffer buffer, int offset);
     }
 }

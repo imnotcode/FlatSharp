@@ -16,6 +16,7 @@
 
 namespace Benchmark
 {
+    using System.Collections.Generic;
     using BenchmarkDotNet.Analysers;
     using BenchmarkDotNet.Columns;
     using BenchmarkDotNet.Configs;
@@ -24,28 +25,25 @@ namespace Benchmark
     using BenchmarkDotNet.Filters;
     using BenchmarkDotNet.Jobs;
     using BenchmarkDotNet.Loggers;
-    using BenchmarkDotNet.Order;
     using BenchmarkDotNet.Reports;
     using BenchmarkDotNet.Running;
-    using BenchmarkDotNet.Validators;
-    using System.Collections.Generic;
-    using System.Text;
 
     public class Program
     {
         public static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<FBBench.FBSerializeBench>();
-            var summary2 = BenchmarkRunner.Run<FBBench.FBDeserializeBench>();
-            var summary3 = BenchmarkRunner.Run<FBBench.OthersDeserializeBench>();
+            List<Summary> summaries = new List<Summary>();
 
-            MarkdownExporter.Console.ExportToLog(summary, new ConsoleLogger());
-            MarkdownExporter.Console.ExportToLog(summary2, new ConsoleLogger());
-            MarkdownExporter.Console.ExportToLog(summary3, new ConsoleLogger());
+            summaries.Add(BenchmarkRunner.Run<FBBench.FBSerializeBench>());
+            summaries.Add(BenchmarkRunner.Run<FBBench.FBDeserializeBench>());
+            summaries.Add(BenchmarkRunner.Run<FBBench.OthersDeserializeBench>());
+            summaries.Add(BenchmarkRunner.Run<FBBench.FBSharedStringBench>());
 
-            MarkdownExporter.GitHub.ExportToFiles(summary, new ConsoleLogger());
-            MarkdownExporter.GitHub.ExportToFiles(summary2, new ConsoleLogger());
-            MarkdownExporter.GitHub.ExportToFiles(summary3, new ConsoleLogger());
+            foreach (var item in summaries)
+            {
+                MarkdownExporter.Console.ExportToLog(item, new ConsoleLogger());
+                MarkdownExporter.GitHub.ExportToFiles(item, new ConsoleLogger());
+            }
         }
     }
 }

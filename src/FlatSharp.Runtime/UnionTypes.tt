@@ -6,7 +6,7 @@
 <#@ output extension=".cs" #>
 
 <#
-	int numGenerics = 10;
+	int numGenerics = 30;
 #>
 
 namespace FlatSharp
@@ -22,13 +22,13 @@ namespace FlatSharp
 			var range = Enumerable.Range(1, i + 1);
 	#>
 			[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-			public sealed class FlatBufferUnion<<#= string.Join(", ", range.Select(x => "T" + x)) #>> : IUnion
+			public class FlatBufferUnion<<#= string.Join(", ", range.Select(x => "T" + x)) #>> : IUnion
 			{
 				private readonly byte discriminator;
 				
 				<# foreach (var genericType in range) { #>
 
-				private readonly T<#= genericType #> item<#= genericType #>;
+				protected readonly T<#= genericType #> item<#= genericType #>;
 				
 				<# } #>
 				
@@ -95,6 +95,67 @@ namespace FlatSharp
 					}
 
 					throw new System.InvalidOperationException();
+				}
+
+				public void Switch(
+					System.Action defaultCase,
+					<#= string.Join(",\r\n", range.Select(x => $"System.Action<T{x}> case{x}")) #>)
+				{
+					<# foreach (var genericType in range) { #>
+						if (this.discriminator == <#= genericType #> && case<#= genericType #> != null)
+						{
+							case<#= genericType #>(this.item<#= genericType #>);
+							return;
+						}
+					<# } #>
+
+					defaultCase();
+				}
+
+				public void Switch<TState>(
+					TState state,
+					System.Action<TState> defaultCase,
+					<#= string.Join(",\r\n", range.Select(x => $"System.Action<TState, T{x}> case{x}")) #>)
+				{
+					<# foreach (var genericType in range) { #>
+						if (this.discriminator == <#= genericType #> && case<#= genericType #> != null)
+						{
+							case<#= genericType #>(state, this.item<#= genericType #>);
+							return;
+						}
+					<# } #>
+
+					defaultCase(state);
+				}
+
+				
+				public TResult Switch<TResult>(
+					System.Func<TResult> defaultCase,
+					<#= string.Join(",\r\n", range.Select(x => $"System.Func<T{x}, TResult> case{x}")) #>)
+				{
+					<# foreach (var genericType in range) { #>
+						if (this.discriminator == <#= genericType #>)
+						{
+							return case<#= genericType #>(this.item<#= genericType #>);
+						}
+					<# } #>
+					
+					return defaultCase();
+				}
+
+				public TResult Switch<TState, TResult>(
+					TState state,
+					System.Func<TState, TResult> defaultCase,
+					<#= string.Join(",\r\n", range.Select(x => $"System.Func<TState, T{x}, TResult> case{x}")) #>)
+				{
+					<# foreach (var genericType in range) { #>
+						if (this.discriminator == <#= genericType #>)
+						{
+							return case<#= genericType #>(state, this.item<#= genericType #>);
+						}
+					<# } #>
+					
+					return defaultCase(state);
 				}
 			}
 	<#
