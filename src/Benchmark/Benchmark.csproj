@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp2.1;net47</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
     <DelaySign>false</DelaySign>
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\misc\strongname.snk</AssemblyOriginatorKeyFile>
@@ -17,9 +17,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FlatSharpSchema Include="FBBench\FlatSharp.fbs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\FlatSharp.Unsafe\FlatSharp.Unsafe.csproj" />
     <ProjectReference Include="..\FlatSharp\FlatSharp.csproj" />
     <ProjectReference Include="..\Google.FlatBuffers\Google.FlatBuffers.csproj" />
   </ItemGroup>
 
+  <Import Project="..\FlatSharp.Compiler.LocalBuild.targets" />
 </Project>

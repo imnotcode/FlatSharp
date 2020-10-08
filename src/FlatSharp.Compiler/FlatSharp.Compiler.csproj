@@ -34,4 +34,5 @@
   <ItemGroup>
     <ProjectReference Include="..\FlatSharp\FlatSharp.csproj" />
   </ItemGroup>
+    
 </Project>

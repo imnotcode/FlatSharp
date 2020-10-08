@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Project>
+
+  <PropertyGroup>
+	<CoreCompileDependsOn>FlatSharpFbsCompile;$(CoreCompileDependsOn)</CoreCompileDependsOn>
+  </PropertyGroup>
+
+  <Target Name="FlatSharpFbsCompile">
+    <PropertyGroup Condition=" '$(TargetFrameworkIdentifier)' != '.NETFramework' ">
+      <CompilerPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\FlatSharp.Compiler\bin\$(Configuration)\netcoreapp2.1\FlatSharp.Compiler.dll'))</CompilerPath>
+      <CompilerInvocation>dotnet $(CompilerPath)</CompilerInvocation>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(TargetFrameworkIdentifier)' == '.NETFramework' ">
+      <CompilerPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\FlatSharp.Compiler\bin\$(Configuration)\net47\FlatSharp.Compiler.exe'))</CompilerPath>
+      <CompilerInvocation>$(CompilerPath)</CompilerInvocation>
+    </PropertyGroup>
+	
+	
+	<Exec Command="dotnet build $(MSBuildThisFileDirectory)\FlatSharp.Compiler\FlatSharp.Compiler.csproj -c $(Configuration)" />
+    <Message Text="$(CompilerInvocation) %(FlatSharpSchema.fullpath)" Importance="high" />
+    <Exec Command="$(CompilerInvocation) %(FlatSharpSchema.fullpath) $(IntermediateOutputPath)" CustomErrorRegularExpression=".*" Condition=" '%(FlatSharpSchema.fullpath)' != '' " />
+    <ItemGroup>
+      <GeneratedFbs Include="$(IntermediateOutputPath)*.generated.cs" />
+      <Compile Include="@(GeneratedFbs)" />
+      <FileWrites Include="@(GeneratedFbs)" />
+    </ItemGroup>
+  </Target>
+</Project>
